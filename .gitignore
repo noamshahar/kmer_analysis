@@ -1,0 +1,8 @@
+*.fasta
+*.pyc
+*.html
+get_dzs_fasta_v1/G4Hunter-master/LICENSE
+*.pdf
+*.exe
+STREME_result_temp/
+muscle3.8.31_i86linux64
