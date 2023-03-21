@@ -1,7 +1,7 @@
 from Bio import SeqIO
 import pandas as pd
 from tqdm import tqdm
-from main import is_N_in_seq
+#from main import is_N_in_seq
 import os
 import fasta_utils
 tqdm.pandas()
@@ -23,12 +23,7 @@ def parse_fastq(fastq_path):
 
 if __name__ == '__main__':
 
-    fastq_list = ['/home/noamshahar/kmer_analysis/fastqs/021523_BnS_dPPR2x8swap_100nM_BIOO_trim_Adapt_Size20.fastq',
-                           '/home/noamshahar/kmer_analysis/fastqs/021523_BnS_dPPR2x8swap_200nM_BIOO_trim_Adapt_Size20.fastq',
-                           '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_50nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq',
-                           '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_100nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq',
-                           '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_200nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq',
-                           '/home/noamshahar/kmer_analysis/fastqs/122021_MMR_Input20mer_BIOO_trim_4at5and3Size20.fastq']
+    fastq_list = ['/home/noamshahar/kmer_analysis/fastqs/021523_BnS_dPPR2x8swap_100nM_BIOO_trim_Adapt_Size20.fastq']
     outpath = '/home/noamshahar/kmer_analysis/fastq_as_fastas'
 
     for curr_fastq in fastq_list:

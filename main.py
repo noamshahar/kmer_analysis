@@ -143,8 +143,13 @@ def save_enrichment_fasta(enrichment_df:pd.DataFrame, sd_above_mean:float,
     global N_KMERS
     N_KMERS = enrichment_filter_df.shape[0]
 
+    # use round enrichment_index values in the histplot
+    bin_edges = range(int(min(enrichment_df['enrichment_index'])), int(max(enrichment_df['enrichment_index'])) + 2)
     # plot enrichmet hist plot and save it
-    sns.histplot(data=enrichment_df, x='enrichment_index')
+    sns.histplot(data=enrichment_df, x='enrichment_index', bins=bin_edges)
+    # set xticks to show only every 10th tick
+    xticks = range(0, int(max(bin_edges)), 10)
+    plt.xticks(xticks)
     # add threshold line for std thresold
     plt.axvline(std_thres, linestyle='--', color='red')  
     # add a legend with meta data and number of sequences
@@ -157,6 +162,9 @@ def save_enrichment_fasta(enrichment_df:pd.DataFrame, sd_above_mean:float,
 
     # parse the df for fasta export
     enrichment_for_fasta = enrichment_filter_df[['seq']]
+
+    # turn T to U to fit for RNA
+    enrichment_for_fasta['seq'].replace('T', 'U', inplace=True)
 
     # export fasta to fasta_outpath
     fasta_utils.write_fasta(enrichment_for_fasta, fasta_outpath)
@@ -217,7 +225,9 @@ def create_logo(muscle_fasta_path:str, outpath:str, k:int,
                 '--size', 'large', '--errorbars', 'NO',
                  '--scale-width', 'NO',
                  '--resolution', '600',
-                 '-c', 'classic']
+                 '-c', 'classic',
+                 '--sequence-type', 'rna',
+                 '--number-interval', '1']
 
     # run command using subprocess
     subprocess.run(logo_cmd)
@@ -231,7 +241,7 @@ if __name__ == '__main__':
                            '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_100nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq',
                            '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_200nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq']
     ref_fastq_path = '/home/noamshahar/kmer_analysis/fastqs/122021_MMR_Input20mer_BIOO_trim_4at5and3Size20.fastq'
-    outpath = '/home/noamshahar/kmer_analysis/k_results'
+    outpath = '/home/noamshahar/kmer_analysis/k_results_new'
     k_list = [5,6,7,8,9,10]
     sd_above_mean_list = [5,7,10]
 
