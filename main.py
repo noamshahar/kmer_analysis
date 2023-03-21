@@ -1,7 +1,6 @@
 import pandas as pd
 import get_ext_files
 import fasta_utils
-#import get_seq_fasta
 import bash_utils
 import calculate_pssm
 import kmer_utils
@@ -115,8 +114,8 @@ def get_enrichment_index(fastq_path:str, k:int, pssm_table:pd.DataFrame) -> pd.D
     return enrichment_df
 
 
-def save_enrichment_fasta(enrichment_df:pd.DataFrame, sd_above_mean:float, k:int, 
-                          outpath:str) -> str:
+def save_enrichment_fasta(enrichment_df:pd.DataFrame, sd_above_mean:float,
+                          k:int, outpath:str) -> str:
     """saves enrichment fasta sequences based on sd above threshold param
     also saved histogram of enrichment
 
@@ -140,12 +139,16 @@ def save_enrichment_fasta(enrichment_df:pd.DataFrame, sd_above_mean:float, k:int
     # filter kmers with higher enrichment index than std_thres
     enrichment_filter_df = enrichment_df[enrichment_df.enrichment_index >= std_thres]
 
+    # save as a global variable current number of kmers
+    global N_KMERS
+    N_KMERS = enrichment_filter_df.shape[0]
+
     # plot enrichmet hist plot and save it
     sns.histplot(data=enrichment_df, x='enrichment_index')
     # add threshold line for std thresold
     plt.axvline(std_thres, linestyle='--', color='red')  
     # add a legend with meta data and number of sequences
-    legend_str = 'SD=' + str(sd_above_mean) + '\nn=' + str(enrichment_filter_df.shape[0])
+    legend_str = f'k={k}\nSD={sd_above_mean}\nvalue={std_thres:.2f}\nn={N_KMERS}'
     plt.legend([legend_str])
     # save figure as png
     plt.savefig(fig_outpath, format='png', dpi=300)
@@ -197,8 +200,10 @@ def create_logo(muscle_fasta_path:str, outpath:str, k:int,
         sd_above_mean (float): threshold of STD above the mean to filter kmers
 
     """
+    global N_KMERS
+
     # define meta data of analysis in the figure
-    fineprint = 'K=' + str(k) + '; SD=' + str(sd_above_mean)
+    fineprint = f'k={k}; SD={sd_above_mean}; n={N_KMERS}'
 
     # define the weblogo outpath file
     logo_path = os.path.basename(muscle_fasta_path).replace('_muscle.fasta', '_logo.eps')
@@ -218,29 +223,51 @@ def create_logo(muscle_fasta_path:str, outpath:str, k:int,
     subprocess.run(logo_cmd)
    
 
-
 if __name__ == '__main__':
 
-    positive_fastq_path = '/home/noamshahar/kmer_analysis/fastqs/021523_BnS_dPPR2x8swap_200nM_BIOO_trim_Adapt_Size20.fastq'
+    positive_fastq_list = ['/home/noamshahar/kmer_analysis/fastqs/021523_BnS_dPPR2x8swap_100nM_BIOO_trim_Adapt_Size20.fastq',
+                           '/home/noamshahar/kmer_analysis/fastqs/021523_BnS_dPPR2x8swap_200nM_BIOO_trim_Adapt_Size20.fastq',
+                           '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_50nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq',
+                           '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_100nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq',
+                           '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_200nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq']
     ref_fastq_path = '/home/noamshahar/kmer_analysis/fastqs/122021_MMR_Input20mer_BIOO_trim_4at5and3Size20.fastq'
-    outpath = '/home/noamshahar/kmer_analysis/results'
+    outpath = '/home/noamshahar/kmer_analysis/k_results'
     k_list = [5,6,7,8,9,10]
-    sd_above_mean_list = [2,5,10]
-    run_name = os.path.basename(positive_fastq_path)
+    sd_above_mean_list = [5,7,10]
 
 
     for k in k_list:
 
         print (k)
-        curr_dir_name = run_name + '_' + str(k)
-        curr_outpath_dir = os.path.join(outpath,curr_dir_name)
+        # define current dir as current iterated k
+        curr_dir_name = 'run_k_' + str(k)
+        # define full dir path and create dir
+        curr_outpath_dir = os.path.join(outpath, curr_dir_name)
+        print (curr_outpath_dir)
         os.makedirs(curr_outpath_dir, exist_ok=True)
 
+        # calculate pssm table for current iterated k
         pssm_table = get_ref_pssm(ref_fastq_path, k)
-        enrichment_df = get_enrichment_index(positive_fastq_path, k, pssm_table)
 
-        for curr_sd_above_mean in sd_above_mean_list:
-            print ('k=' + str(k) + 'sd=' + str(curr_sd_above_mean))
-            enrichment_fasta_path = save_enrichment_fasta(enrichment_df, curr_sd_above_mean, k, curr_outpath_dir)
-            muscle_fasta_path = get_muscle_fasta(enrichment_fasta_path, curr_outpath_dir)
-            create_logo(muscle_fasta_path, curr_outpath_dir, k, curr_sd_above_mean)
+        # iterate through all positive fastqs in current k
+        for positive_fastq_path in positive_fastq_list:
+
+            # create sub-folder for current fastq
+            curr_fastq_dir = os.path.join(curr_outpath_dir, os.path.basename(positive_fastq_path))
+            os.makedirs(curr_fastq_dir)
+            # calculate enrichment index
+            enrichment_df = get_enrichment_index(positive_fastq_path, k, pssm_table)
+
+            # iterate through the list of sd_above_mean_list
+            for curr_sd_above_mean in sd_above_mean_list:
+                
+                # define and create subdir for each sd_above_mean
+                curr_sd_k_dir = os.path.join(curr_fastq_dir, 'sd_' + str(curr_sd_above_mean))
+                os.makedirs(curr_sd_k_dir, exist_ok=True)
+
+                # save current enrichment fasta
+                enrichment_fasta_path = save_enrichment_fasta(enrichment_df, curr_sd_above_mean, k, curr_sd_k_dir)
+                # run muscle and save its fasta
+                muscle_fasta_path = get_muscle_fasta(enrichment_fasta_path, curr_sd_k_dir)
+                # create logo for current muscle fasta
+                create_logo(muscle_fasta_path, curr_sd_k_dir, k, curr_sd_above_mean)
