@@ -113,6 +113,13 @@ def get_enrichment_index(fastq_path:str, k:int, pssm_table:pd.DataFrame) -> pd.D
 
     return enrichment_df
 
+def multiply_seq_by_enrichment(curr_row):
+
+    curr_seq = [curr_row['seq']]
+    curr_enrichment = int(curr_row['enrichment_index'])
+
+    return curr_seq * curr_enrichment
+
 
 def save_enrichment_fasta(enrichment_df:pd.DataFrame, sd_above_mean:float,
                           k:int, outpath:str) -> str:
@@ -139,17 +146,22 @@ def save_enrichment_fasta(enrichment_df:pd.DataFrame, sd_above_mean:float,
     # filter kmers with higher enrichment index than std_thres
     enrichment_filter_df = enrichment_df[enrichment_df.enrichment_index >= std_thres]
 
+    # multiply each by its cognate enrichment index
+    multiple_seq = enrichment_filter_df.apply(multiply_seq_by_enrichment, axis=1)
+    if multiple_seq.empty:
+        enrichment_filter_explode = pd.Series()
+    else:
+        # explode
+        enrichment_filter_explode = multiple_seq.explode()
     # save as a global variable current number of kmers
     global N_KMERS
-    N_KMERS = enrichment_filter_df.shape[0]
+    N_KMERS = enrichment_filter_explode.shape[0]
 
     # use round enrichment_index values in the histplot
+    ###??###
     bin_edges = range(int(min(enrichment_df['enrichment_index'])), int(max(enrichment_df['enrichment_index'])) + 2)
     # plot enrichmet hist plot and save it
     sns.histplot(data=enrichment_df, x='enrichment_index', bins=bin_edges)
-    # set xticks to show only every 10th tick
-    xticks = range(0, int(max(bin_edges)), 10)
-    plt.xticks(xticks)
     # add threshold line for std thresold
     plt.axvline(std_thres, linestyle='--', color='red')  
     # add a legend with meta data and number of sequences
@@ -160,14 +172,11 @@ def save_enrichment_fasta(enrichment_df:pd.DataFrame, sd_above_mean:float,
     # close figure
     plt.close()
 
-    # parse the df for fasta export
-    enrichment_for_fasta = enrichment_filter_df[['seq']]
-
-    # turn T to U to fit for RNA
-    enrichment_for_fasta['seq'].replace('T', 'U', inplace=True)
+    # replace 'T' with 'U' in each sequence
+    enrichment_filter_explode = enrichment_filter_explode.apply(lambda sequence: sequence.replace('T', 'U'))
 
     # export fasta to fasta_outpath
-    fasta_utils.write_fasta(enrichment_for_fasta, fasta_outpath)
+    fasta_utils.write_fasta(pd.DataFrame(enrichment_filter_explode), fasta_outpath)
 
     return fasta_outpath
 
