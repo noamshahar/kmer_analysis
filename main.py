@@ -85,6 +85,9 @@ def get_enrichment_index(fastq_path:str, k:int, pssm_table:pd.DataFrame) -> pd.D
     N_index = seq_N_series[seq_N_series].index.tolist()
     fastq_df = fastq_df[~fastq_df.index.isin(N_index)]
 
+    # slice seqs
+    fastq_df['seq'] = fastq_df['seq'].apply(lambda x:x[5:16])
+
     print ('create kmer for fastq...')
     # create kmer series for ref_fastq_df
     kmer_series = fastq_df.seq.progress_apply(kmer_utils.k_mer_split, args=(k,))
@@ -250,9 +253,9 @@ if __name__ == '__main__':
                            '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_100nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq',
                            '/home/noamshahar/kmer_analysis/fastqs/082621_MMR_200nM_dPPR8x2_BIOO_trim_4at5and3Size20.fastq']
     ref_fastq_path = '/home/noamshahar/kmer_analysis/fastqs/122021_MMR_Input20mer_BIOO_trim_4at5and3Size20.fastq'
-    outpath = '/home/noamshahar/kmer_analysis/k_results_new'
-    k_list = [5,6,7,8,9,10]
-    sd_above_mean_list = [5,7,10]
+    outpath = '/home/noamshahar/kmer_analysis/k_results_middle_part'
+    k_list = [7]
+    sd_above_mean_list = [5,7,10,15,20,30]
 
 
     for k in k_list:
